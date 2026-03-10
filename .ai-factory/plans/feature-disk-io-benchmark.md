@@ -63,7 +63,7 @@ Rationale: This is the next unchecked milestone in the roadmap, directly followi
 
 ### Phase 3: Testing
 
-- [ ] Task 6: Write unit tests for disk benchmark (depends on 2, 3, 4)
+- [x] Task 6: Write unit tests for disk benchmark (depends on 2, 3, 4)
   - `internal/disk/disk_test.go`: test Name(), Run(), result names, context cancellation
   - `internal/disk/workloads_test.go`: test each workload returns positive values, temp file cleanup
   - Use `t.TempDir()`, short durations (1s) for CI

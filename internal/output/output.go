@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 
 	"github.com/user/vpsbench/internal/bench"
 )
@@ -39,6 +40,9 @@ var noColor bool
 // SetNoColor включает или выключает использование ANSI-цветов.
 func SetNoColor(v bool) {
 	noColor = v
+	if v {
+		lipgloss.SetColorProfile(termenv.Ascii)
+	}
 	slog.Debug("[output] no-color mode set", "value", v)
 }
 

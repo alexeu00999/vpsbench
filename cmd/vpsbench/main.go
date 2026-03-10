@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -89,33 +91,18 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 	}
 
 	// Фильтрация по флагам
-	var selected []bench.Benchmark
-	hasFilter := flagCPU || flagRAM || flagDisk || flagNetwork
+	opts := bench.FilterOptions{
+		CPU:     flagCPU,
+		RAM:     flagRAM,
+		Disk:    flagDisk,
+		Network: flagNetwork,
+	}
 
-	if hasFilter {
-		slog.Debug("[main] filtering benchmarks by flags", "cpu", flagCPU, "ram", flagRAM, "disk", flagDisk, "network", flagNetwork)
-		for _, b := range allBenchmarks {
-			switch b.Name() {
-			case "CPU":
-				if flagCPU {
-					selected = append(selected, b)
-				}
-			case "RAM":
-				if flagRAM {
-					selected = append(selected, b)
-				}
-			case "DISK":
-				if flagDisk {
-					selected = append(selected, b)
-				}
-			case "NETWORK":
-				if flagNetwork {
-					selected = append(selected, b)
-				}
-			}
-		}
+	var selected []bench.Benchmark
+	if opts.HasFilter() {
+		selected = bench.FilterBenchmarks(allBenchmarks, opts)
 	} else if !flagAuto {
-		// Интерактивный режим
+		// Интерактивный режим (только если нет фильтров и нет --auto)
 		slog.Info("[main] entering interactive mode")
 		names := make([]string, len(allBenchmarks))
 		for i, b := range allBenchmarks {
@@ -163,6 +150,8 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 			}
 		}
 	} else {
+		// Режим --auto: запускаем всё
+		slog.Info("[main] auto mode enabled, running all benchmarks")
 		selected = allBenchmarks
 	}
 
@@ -200,9 +189,30 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 
 	// Выводим результаты
 	if flagJSON {
-		// TODO: JSON вывод
-		slog.Info("[main] JSON output not yet implemented")
-		fmt.Println("{\"error\": \"JSON output not yet implemented\"}")
+		slog.Info("[main] generating JSON output")
+		report := bench.Report{
+			Timestamp: time.Now().Format(time.RFC3339),
+			SystemInfo: bench.SystemInfo{
+				OSVersion: info.OSVersion,
+				Kernel:    info.Kernel,
+				Arch:      info.Arch,
+				CPUModel:  info.CPUModel,
+				CPUCores:  info.CPUCores,
+				RAM:       sysinfo.FormatRAM(info.RAMTotal),
+				Disks:     sysinfo.FormatDisks(info.Disks),
+				Location:  info.Location,
+				PublicIP:  info.PublicIP,
+			},
+			ModuleResults: results,
+			OverallRating: overall,
+		}
+
+		jsonData, err := json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			slog.Error("[main] failed to marshal JSON", "error", err)
+			return fmt.Errorf("json marshal: %w", err)
+		}
+		fmt.Println(string(jsonData))
 		return nil
 	}
 

@@ -11,7 +11,7 @@ vpsbench
 # Автоматический режим (без меню, тесты по умолчанию)
 vpsbench --auto
 
-# JSON-вывод (В разработке)
+# JSON-вывод (для автоматизации)
 vpsbench --json
 ```
 
@@ -24,7 +24,7 @@ vpsbench --json
 | `--ram` | Только RAM тест |
 | `--disk` | Только Disk I/O тест |
 | `--network` | Только сетевой тест |
-| `--json` | Вывод в формате JSON (В разработке) |
+| `--json` | Вывод в формате JSON |
 | `--no-color` | Без цветов |
 
 Флаги можно комбинировать:
@@ -69,27 +69,33 @@ vpsbench --cpu --ram --json
 | 61-80% | Жёлтый | Хорошо |
 | 81-100% | Зелёный | Отлично |
 
-## JSON-вывод (В разработке)
+## JSON-вывод
 
 ```json
 {
-  "system": {
-    "os": "Ubuntu 22.04",
-    "location": "Frankfurt, DE",
+  "timestamp": "2026-03-10T15:30:00Z",
+  "system_info": {
+    "os_version": "Ubuntu 22.04",
+    "kernel": "5.15.0-generic",
+    "arch": "amd64",
     "cpu_model": "Intel Xeon E5-2690 v3",
-    "cores": 4,
-    "ram_gb": 4
+    "cpu_cores": 4,
+    "ram": "4 GB",
+    "disks": "/dev/sda (50 GB)",
+    "location": "Frankfurt, Germany",
+    "public_ip": "203.0.113.42"
   },
-  "rating": 68,
-  "results": {
-    "cpu": {
-      "single_core": { "value": 1240, "unit": "ops/s", "percent": 45 },
-      "multi_core": { "value": 4800, "unit": "ops/s", "percent": 60 }
-    },
-    "ram": {
-      "speed": { "value": 18500, "unit": "MB/s", "percent": 75 }
+  "module_results": [
+    {
+      "module": "CPU",
+      "info": "Intel Xeon E5-2690 v3 (4 Cores)",
+      "results": [
+        { "name": "Single-core", "value": 1240, "unit": "ops/s", "percent": 45 },
+        { "name": "Multi-core", "value": 4800, "unit": "ops/s", "percent": 60 }
+      ]
     }
-  }
+  ],
+  "overall_rating": 68
 }
 ```
 

@@ -22,6 +22,51 @@ func NewRunner(benchmarks []Benchmark) *Runner {
 	return &Runner{benchmarks: benchmarks}
 }
 
+// FilterOptions — опции фильтрации бенчмарков по флагам CLI.
+type FilterOptions struct {
+	CPU     bool
+	RAM     bool
+	Disk    bool
+	Network bool
+}
+
+// HasFilter возвращает true, если установлен хотя бы один фильтр.
+func (o FilterOptions) HasFilter() bool {
+	return o.CPU || o.RAM || o.Disk || o.Network
+}
+
+// FilterBenchmarks фильтрует список бенчмарков согласно опциям.
+func FilterBenchmarks(all []Benchmark, opts FilterOptions) []Benchmark {
+	if !opts.HasFilter() {
+		return all
+	}
+
+	var selected []Benchmark
+	for _, b := range all {
+		name := b.Name()
+		switch name {
+		case "CPU":
+			if opts.CPU {
+				selected = append(selected, b)
+			}
+		case "RAM":
+			if opts.RAM {
+				selected = append(selected, b)
+			}
+		case "DISK":
+			if opts.Disk {
+				selected = append(selected, b)
+			}
+		case "NETWORK":
+			if opts.Network {
+				selected = append(selected, b)
+			}
+		}
+	}
+	slog.Debug("[bench] filtered benchmarks", "requested", opts, "count", len(selected))
+	return selected
+}
+
 // RunAll запускает все зарегистрированные бенчмарки параллельно.
 func (r *Runner) RunAll(ctx context.Context) []ModuleResult {
 	slog.Info("[runner] starting all benchmarks", "count", len(r.benchmarks))

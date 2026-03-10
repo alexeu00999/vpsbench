@@ -14,6 +14,25 @@ wget -qO- https://super-bench.io/install.sh | bash
 docker run --rm -it superbench/vpsbench
 ```
 
+## Использование CLI
+
+```bash
+# Интерактивный запуск (по умолчанию)
+vpsbench
+
+# Пропустить выбор, запустить всё (автоматический режим)
+vpsbench --auto
+
+# Запустить только конкретные тесты
+vpsbench --cpu --ram
+
+# Вывод в формате JSON для автоматизации
+vpsbench --json > report.json
+
+# Отключить цвета (для лог-файлов)
+vpsbench --no-color
+```
+
 ## Ключевые возможности
 
 - **CPU тест** — single-core и multi-core операции/сек

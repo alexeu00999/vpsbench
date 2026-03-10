@@ -109,3 +109,56 @@ func TestRunnerGracefulDegradation(t *testing.T) {
 		t.Errorf("expected 1 ok and 1 error, got %d ok and %d errors", okCount, errCount)
 	}
 }
+
+func TestFilterBenchmarks(t *testing.T) {
+	benchmarks := []Benchmark{
+		&mockBenchmark{name: "CPU"},
+		&mockBenchmark{name: "RAM"},
+		&mockBenchmark{name: "DISK"},
+		&mockBenchmark{name: "NETWORK"},
+	}
+
+	tests := []struct {
+		name     string
+		opts     FilterOptions
+		expected int
+	}{
+		{"No filter", FilterOptions{}, 4},
+		{"Only CPU", FilterOptions{CPU: true}, 1},
+		{"CPU and RAM", FilterOptions{CPU: true, RAM: true}, 2},
+		{"DISK and Network", FilterOptions{Disk: true, Network: true}, 2},
+		{"All but Disk", FilterOptions{CPU: true, RAM: true, Network: true}, 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			selected := FilterBenchmarks(benchmarks, tt.opts)
+			if len(selected) != tt.expected {
+				t.Errorf("expected %d selected benchmarks, got %d", tt.expected, len(selected))
+			}
+			if tt.opts.HasFilter() {
+				for _, b := range selected {
+					name := b.Name()
+					switch name {
+					case "CPU":
+						if !tt.opts.CPU {
+							t.Errorf("unexpected module %s", name)
+						}
+					case "RAM":
+						if !tt.opts.RAM {
+							t.Errorf("unexpected module %s", name)
+						}
+					case "DISK":
+						if !tt.opts.Disk {
+							t.Errorf("unexpected module %s", name)
+						}
+					case "NETWORK":
+						if !tt.opts.Network {
+							t.Errorf("unexpected module %s", name)
+						}
+					}
+				}
+			}
+		})
+	}
+}

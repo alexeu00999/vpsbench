@@ -3,12 +3,20 @@ package cpu
 import (
 	"context"
 	"log/slog"
-	"math"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/user/vpsbench/internal/bench"
+)
+
+const (
+	// testDuration — длительность каждого теста (single/multi).
+	testDuration = 3 * time.Second
+
+	// warmupDuration — длительность прогрева кэшей перед замером.
+	warmupDuration = 100 * time.Millisecond
 )
 
 // CPUBench реализует bench.Benchmark для тестирования CPU.
@@ -24,69 +32,83 @@ func (c *CPUBench) Name() string {
 	return "CPU"
 }
 
-// Run выполняет CPU бенчмарк (заглушка с базовыми вычислениями).
+// Run выполняет CPU бенчмарк: warmup, single-core, multi-core.
 func (c *CPUBench) Run(ctx context.Context) bench.ModuleResult {
 	slog.Info("[cpu] starting benchmark")
+	start := time.Now()
+
 	result := bench.ModuleResult{
 		Module: "CPU",
-		Info:   "CPU detection pending", // TODO: реальный детект в sysinfo
 	}
 
+	// Warmup — прогреваем кэши CPU
+	slog.Debug("[cpu] running warmup", "duration", warmupDuration)
+	warmupOps := runOpsTest(ctx, 1, warmupDuration)
+	slog.Debug("[cpu] warmup complete", "ops", warmupOps)
+
 	// Single-core тест
-	slog.Debug("[cpu] running single-core test")
-	single := runOpsTest(ctx, 1)
+	slog.Debug("[cpu] running single-core test", "duration", testDuration)
+	singleStart := time.Now()
+	single := runOpsTest(ctx, 1, testDuration)
+	singleElapsed := time.Since(singleStart)
 	result.Results = append(result.Results, bench.Result{
 		Name:  "Single-core",
 		Value: single,
 		Unit:  "ops/s",
 	})
-	slog.Debug("[cpu] single-core result", "ops_per_sec", single)
+	slog.Debug("[cpu] single-core result", "ops_per_sec", single, "elapsed", singleElapsed)
 
 	// Multi-core тест
 	cores := runtime.NumCPU()
-	slog.Debug("[cpu] running multi-core test", "cores", cores)
-	multi := runOpsTest(ctx, cores)
+	slog.Debug("[cpu] running multi-core test", "cores", cores, "duration", testDuration)
+	multiStart := time.Now()
+	multi := runOpsTest(ctx, cores, testDuration)
+	multiElapsed := time.Since(multiStart)
 	result.Results = append(result.Results, bench.Result{
 		Name:  "Multi-core",
 		Value: multi,
 		Unit:  "ops/s",
 	})
-	slog.Debug("[cpu] multi-core result", "ops_per_sec", multi, "cores", cores)
+	slog.Debug("[cpu] multi-core result", "ops_per_sec", multi, "cores", cores, "elapsed", multiElapsed)
 
-	slog.Info("[cpu] benchmark completed", "results_count", len(result.Results))
+	totalElapsed := time.Since(start)
+	slog.Info("[cpu] benchmark completed",
+		"single_core", single,
+		"multi_core", multi,
+		"cores", cores,
+		"total_elapsed", totalElapsed,
+	)
 	return result
 }
 
-// runOpsTest запускает вычислительный тест на указанном количестве горутин.
-// Возвращает суммарное количество операций в секунду.
-func runOpsTest(ctx context.Context, goroutines int) float64 {
-	duration := 2 * time.Second
-	var totalOps int64
-	var mu sync.Mutex
+// runOpsTest запускает смешанную вычислительную нагрузку на goroutines горутинах
+// в течение duration. Возвращает суммарное количество операций в секунду.
+func runOpsTest(ctx context.Context, goroutines int, duration time.Duration) float64 {
+	slog.Debug("[cpu] runOpsTest starting", "goroutines", goroutines, "duration", duration)
 
+	var totalOps atomic.Int64
 	var wg sync.WaitGroup
+
 	for i := 0; i < goroutines; i++ {
 		wg.Add(1)
-		go func() {
+		go func(id int) {
 			defer wg.Done()
-			ops := int64(0)
-			deadline := time.Now().Add(duration)
-			for time.Now().Before(deadline) {
-				// Вычислительная нагрузка
-				for j := 0; j < 1000; j++ {
-					_ = math.Sqrt(float64(j) * 2.71828)
-				}
-				ops += 1000
-				if ctx.Err() != nil {
-					break
-				}
-			}
-			mu.Lock()
-			totalOps += ops
-			mu.Unlock()
-		}()
+			slog.Debug("[cpu] goroutine started", "id", id)
+			runMixedWorkload(ctx, duration, &totalOps)
+			slog.Debug("[cpu] goroutine finished", "id", id)
+		}(i)
 	}
+
 	wg.Wait()
 
-	return float64(totalOps) / duration.Seconds()
+	ops := totalOps.Load()
+	opsPerSec := float64(ops) / duration.Seconds()
+
+	slog.Debug("[cpu] runOpsTest completed",
+		"goroutines", goroutines,
+		"total_ops", ops,
+		"ops_per_sec", opsPerSec,
+	)
+
+	return opsPerSec
 }

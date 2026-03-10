@@ -18,8 +18,11 @@ type Baseline struct {
 func DefaultBaseline() Baseline {
 	return Baseline{
 		Values: map[string]float64{
-			"CPU:Single-core":  5000,    // ops/s для одного ядра Ryzen 9
-			"CPU:Multi-core":   40000,   // ops/s для 8 ядер
+			// CPU baseline: смешанная нагрузка (integer + float + crypto).
+			// Эталон: Ryzen 9 5900X single-core ~200M ops/s, 8 cores ~1.5B ops/s.
+			// Калиброван по Apple M4 (~240M single, ~970M multi на 10 cores).
+			"CPU:Single-core":  200000000, // 200M ops/s — один поток Ryzen 9 5900X
+			"CPU:Multi-core":   1500000000, // 1.5B ops/s — 8 потоков Ryzen 9 5900X
 			"RAM:Speed (R/W)":  50000,   // MB/s DDR5
 			"DISK:Seq. Read":   7000,    // MB/s NVMe Gen4
 			"DISK:Seq. Write":  5000,    // MB/s NVMe Gen4

@@ -40,20 +40,20 @@ Rationale: This is the next unchecked milestone in the roadmap, directly followi
 
 ### Phase 2: Multi-disk & Platform Optimizations
 
-- [ ] Task 3: Add per-disk benchmarking support (depends on 1, 2)
+- [x] Task 3: Add per-disk benchmarking support (depends on 1, 2)
   - Accept disk info via functional options: `New(opts ...Option)`
   - Test each detected disk on its mount point
   - Aggregate per-disk results: "Seq. Write (nvme0n1)", "Rand 4K IOPS (sda)"
   - Fallback to default temp dir if no disks detected
   - Files: `internal/disk/disk.go`, `internal/disk/workloads.go`, `internal/disk/options.go` (new)
 
-- [ ] Task 4: Add platform-specific I/O optimizations (depends on 1)
+- [x] Task 4: Add platform-specific I/O optimizations (depends on 1)
   - `internal/disk/io_linux.go`: O_DIRECT, syscall.Fadvise FADV_DONTNEED, 4096-aligned buffers
   - `internal/disk/io_darwin.go`: F_NOCACHE via fcntl, graceful fallback
   - `internal/disk/io_default.go`: no-op implementations for other platforms
   - Files: `internal/disk/io_linux.go`, `internal/disk/io_darwin.go`, `internal/disk/io_default.go` (all new)
 
-- [ ] Task 5: Integrate disk info into DiskBench from main.go (depends on 3)
+- [x] Task 5: Integrate disk info into DiskBench from main.go (depends on 3)
   - Pass `info.Disks` to `disk.New()` via options
   - Remove post-hoc Info override for DISK module in main.go
   - Let DiskBench set its own Info from tested disks

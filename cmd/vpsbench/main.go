@@ -64,11 +64,26 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("system detection: %w", err)
 	}
 
+	// Конвертируем sysinfo.DiskInfo в disk.DiskTarget для бенчмарка
+	var diskTargets []disk.DiskTarget
+	for _, d := range info.Disks {
+		diskTargets = append(diskTargets, disk.DiskTarget{
+			Device: d.Device,
+			Type:   d.Type,
+			Path:   "", // empty = use default temp dir (mount point resolution is TODO)
+		})
+	}
+	if len(diskTargets) > 0 {
+		slog.Debug("[main] disk targets from sysinfo", "count", len(diskTargets))
+	} else {
+		slog.Debug("[main] no disks detected, disk benchmark will use default temp dir")
+	}
+
 	// Собираем бенчмарки
 	allBenchmarks := []bench.Benchmark{
 		cpu.New(),
 		ram.New(),
-		disk.New(),
+		disk.New(disk.WithTargets(diskTargets)),
 		network.New(),
 	}
 
@@ -116,7 +131,10 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 		case "RAM":
 			results[i].Info = sysinfo.FormatRAM(info.RAMTotal)
 		case "DISK":
-			results[i].Info = sysinfo.FormatDisks(info.Disks)
+			// Info is set by DiskBench itself based on targets
+			if results[i].Info == "" || results[i].Info == "Default" {
+				results[i].Info = sysinfo.FormatDisks(info.Disks)
+			}
 		case "NETWORK":
 			if info.PublicIP != "" {
 				results[i].Info = fmt.Sprintf("IP: %s | %s", info.PublicIP, info.Location)

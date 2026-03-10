@@ -28,6 +28,7 @@ vpsbench/
 │   ├── rating/                  # Расчёт рейтинга
 │   ├── ui/                      # TUI компоненты (BubbleTea)
 │   └── output/                  # Форматирование вывода и цвета (Lipgloss)
+
 ├── docs/                        # Подробная документация (architecture, cli, etc.)
 ├── .ai-factory/                 # AI-контекст (DESCRIPTION, ARCHITECTURE, ROADMAP)
 ├── Dockerfile                   # Контейнеризация для универсального запуска

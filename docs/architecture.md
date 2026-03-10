@@ -43,7 +43,7 @@ vpsbench/
 | Network | `internal/network` | Пинг, скорость до EU/US/Asia |
 | Sysinfo | `internal/sysinfo` | Информация о системе |
 | Rating | `internal/rating` | Процентная оценка производительности |
-| UI | `internal/ui` | BubbleTea TUI — выбор и отображение (В разработке) |
+| UI | `internal/ui` | BubbleTea TUI — выбор и отображение |
 | Output | `internal/output` | Lipgloss — цвета и форматирование (В разработке) |
 
 ## Поток данных (В разработке)

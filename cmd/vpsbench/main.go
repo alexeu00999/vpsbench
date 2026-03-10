@@ -17,6 +17,7 @@ import (
 	"github.com/user/vpsbench/internal/ram"
 	"github.com/user/vpsbench/internal/rating"
 	"github.com/user/vpsbench/internal/sysinfo"
+	"github.com/user/vpsbench/internal/ui"
 )
 
 var (
@@ -110,6 +111,54 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 			case "NETWORK":
 				if flagNetwork {
 					selected = append(selected, b)
+				}
+			}
+		}
+	} else if !flagAuto {
+		// Интерактивный режим
+		slog.Info("[main] entering interactive mode")
+		names := make([]string, len(allBenchmarks))
+		for i, b := range allBenchmarks {
+			names[i] = b.Name()
+		}
+
+		selection, err := ui.SelectComponents(names, info.Disks)
+		if err != nil {
+			return fmt.Errorf("interactive selector: %w", err)
+		}
+
+		nameSet := make(map[string]bool)
+		for _, n := range selection.Modules {
+			nameSet[n] = true
+		}
+
+		for _, b := range allBenchmarks {
+			if nameSet[b.Name()] {
+				selected = append(selected, b)
+			}
+		}
+
+		// Обновляем список дисков на основе выбора пользователя
+		if len(selection.Disks) > 0 {
+			diskTargets = nil // сбрасываем автодетект
+			selectedDiskMap := make(map[string]bool)
+			for _, d := range selection.Disks {
+				selectedDiskMap[d] = true
+			}
+
+			for _, d := range info.Disks {
+				if selectedDiskMap[d.Device] {
+					diskTargets = append(diskTargets, disk.DiskTarget{
+						Device: d.Device,
+						Type:   d.Type,
+						Path:   "",
+					})
+				}
+			}
+			// Пересоздаем модуль DISK с новым набором целей
+			for i, b := range selected {
+				if b.Name() == "DISK" {
+					selected[i] = disk.New(disk.WithTargets(diskTargets))
 				}
 			}
 		}

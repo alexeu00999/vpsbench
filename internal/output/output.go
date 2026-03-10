@@ -8,8 +8,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/user/vpsbench/internal/bench"
-	"github.com/user/vpsbench/internal/sysinfo"
 )
+
+// HeaderData содержит данные для шапки отчёта.
+// Не зависит от sysinfo напрямую — данные передаются из main.go.
+type HeaderData struct {
+	OSVersion string // "Ubuntu 22.04", "macOS 15.3"
+	Kernel    string // "6.1.0-18-amd64"
+	Arch      string // "amd64", "arm64"
+	CPUModel  string // "AMD Ryzen 9 5900X"
+	CPUCores  int
+	RAM       string // "16 GB"
+	Disks     string // "NVMe 500 GB, SSD 1 TB"
+	Location  string // "Frankfurt, Germany"
+	PublicIP  string // "203.0.113.42"
+}
 
 var (
 	colorRed    = lipgloss.Color("#FF4444")
@@ -63,26 +76,38 @@ func RenderProgressBar(percent int, width int) string {
 }
 
 // RenderHeader рисует шапку отчёта.
-func RenderHeader(info sysinfo.SystemInfo, overallRating int) string {
+func RenderHeader(data HeaderData, overallRating int) string {
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(colorCyan)
+	dimStyle := lipgloss.NewStyle().Foreground(colorDim)
 	line := strings.Repeat("=", 70)
 
-	header := fmt.Sprintf("%s\n %s | Location: %s | OS: %s %s\n%s\n",
-		line,
-		titleStyle.Render("SUPER-BENCH v1.0"),
-		info.Location,
-		info.OS,
-		info.Arch,
-		line,
-	)
+	var sb strings.Builder
+	sb.WriteString(line + "\n")
+	sb.WriteString(fmt.Sprintf(" %s\n", titleStyle.Render("SUPER-BENCH v1.0")))
+	sb.WriteString(line + "\n")
 
+	// Системная информация
+	sb.WriteString(fmt.Sprintf(" OS:       %s  Kernel: %s  Arch: %s\n", data.OSVersion, data.Kernel, data.Arch))
+	sb.WriteString(fmt.Sprintf(" CPU:      %s (%d Cores)\n", data.CPUModel, data.CPUCores))
+	sb.WriteString(fmt.Sprintf(" RAM:      %s\n", data.RAM))
+	sb.WriteString(fmt.Sprintf(" Disk:     %s\n", data.Disks))
+
+	if data.PublicIP != "" {
+		sb.WriteString(fmt.Sprintf(" Location: %s %s\n", data.Location, dimStyle.Render("("+data.PublicIP+")")))
+	} else {
+		sb.WriteString(fmt.Sprintf(" Location: %s\n", data.Location))
+	}
+
+	sb.WriteString(strings.Repeat("-", 70) + "\n")
+
+	// Общий рейтинг
 	ratingColor := ColorForPercent(overallRating)
 	ratingStyle := lipgloss.NewStyle().Bold(true).Foreground(ratingColor)
-	header += fmt.Sprintf(" SYSTEM RATING: %s\n", ratingStyle.Render(fmt.Sprintf("%d%%", overallRating)))
-	header += " Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5\n"
-	header += strings.Repeat("-", 70)
+	sb.WriteString(fmt.Sprintf(" SYSTEM RATING: %s\n", ratingStyle.Render(fmt.Sprintf("%d%%", overallRating))))
+	sb.WriteString(" Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5\n")
+	sb.WriteString(strings.Repeat("-", 70))
 
-	return header
+	return sb.String()
 }
 
 // RenderModuleResult рисует результаты одного модуля.

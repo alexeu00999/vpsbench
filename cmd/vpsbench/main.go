@@ -57,7 +57,8 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 	slog.Info("[main] starting SUPER-BENCH")
 
 	// Определяем систему
-	info, err := sysinfo.Detect()
+	ctx := context.Background()
+	info, err := sysinfo.Detect(ctx)
 	if err != nil {
 		slog.Error("[main] system detection failed", "error", err)
 		return fmt.Errorf("system detection: %w", err)
@@ -104,9 +105,26 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 	slog.Info("[main] running benchmarks", "count", len(selected))
 
 	// Запускаем
-	ctx := context.Background()
 	runner := bench.NewRunner(selected)
 	results := runner.RunAll(ctx)
+
+	// Обогащаем Info из sysinfo
+	for i := range results {
+		switch results[i].Module {
+		case "CPU":
+			results[i].Info = fmt.Sprintf("%s (%d Cores)", info.CPUModel, info.CPUCores)
+		case "RAM":
+			results[i].Info = sysinfo.FormatRAM(info.RAMTotal)
+		case "DISK":
+			results[i].Info = sysinfo.FormatDisks(info.Disks)
+		case "NETWORK":
+			if info.PublicIP != "" {
+				results[i].Info = fmt.Sprintf("IP: %s | %s", info.PublicIP, info.Location)
+			} else {
+				results[i].Info = info.Location
+			}
+		}
+	}
 
 	// Рассчитываем рейтинг
 	baseline := rating.DefaultBaseline()
@@ -121,8 +139,20 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	headerData := output.HeaderData{
+		OSVersion: info.OSVersion,
+		Kernel:    info.Kernel,
+		Arch:      info.Arch,
+		CPUModel:  info.CPUModel,
+		CPUCores:  info.CPUCores,
+		RAM:       sysinfo.FormatRAM(info.RAMTotal),
+		Disks:     sysinfo.FormatDisks(info.Disks),
+		Location:  info.Location,
+		PublicIP:  info.PublicIP,
+	}
+
 	fmt.Println()
-	fmt.Println(output.RenderHeader(info, overall))
+	fmt.Println(output.RenderHeader(headerData, overall))
 	for _, r := range results {
 		fmt.Print(output.RenderModuleResult(r))
 	}

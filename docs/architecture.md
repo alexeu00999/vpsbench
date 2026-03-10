@@ -44,7 +44,7 @@ vpsbench/
 | Sysinfo | `internal/sysinfo` | Информация о системе |
 | Rating | `internal/rating` | Процентная оценка производительности |
 | UI | `internal/ui` | BubbleTea TUI — выбор и отображение |
-| Output | `internal/output` | Lipgloss — цвета и форматирование (В разработке) |
+| Output | `internal/output` | Lipgloss — цвета и форматирование |
 
 ## Поток данных (В разработке)
 

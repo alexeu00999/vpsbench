@@ -206,6 +206,9 @@ func runBenchmark(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	output.SetNoColor(flagNoColor)
+	slog.Info("[main] rendering results", "no_color", flagNoColor)
+
 	headerData := output.HeaderData{
 		OSVersion: info.OSVersion,
 		Kernel:    info.Kernel,

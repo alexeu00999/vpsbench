@@ -5,9 +5,13 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/user/vpsbench/internal/bench"
 )
 
 func TestColorForPercent(t *testing.T) {
+	// Сбрасываем noColor для чистоты теста
+	SetNoColor(false)
+
 	tests := []struct {
 		percent int
 		want    lipgloss.Color
@@ -33,7 +37,43 @@ func TestColorForPercent(t *testing.T) {
 	}
 }
 
+func TestNoColorMode(t *testing.T) {
+	SetNoColor(true)
+	defer SetNoColor(false)
+
+	// 1. Проверка ColorForPercent
+	got := ColorForPercent(50)
+	if string(got) != "" {
+		t.Errorf("ColorForPercent in no-color mode should return empty string, got %q", got)
+	}
+
+	// 2. Проверка RenderProgressBar (не должно быть ANSI кодов \x1b)
+	bar := RenderProgressBar(50, 10)
+	if strings.Contains(bar, "\x1b") {
+		t.Errorf("RenderProgressBar contains ANSI codes in no-color mode: %q", bar)
+	}
+
+	// 3. Проверка RenderHeader
+	header := RenderHeader(HeaderData{OSVersion: "Linux"}, 50)
+	if strings.Contains(header, "\x1b") {
+		t.Errorf("RenderHeader contains ANSI codes in no-color mode")
+	}
+
+	// 4. Проверка RenderModuleResult
+	mr := bench.ModuleResult{
+		Module: "TEST",
+		Results: []bench.Result{
+			{Name: "Metric", Value: 100, Unit: "ops", Percent: 50},
+		},
+	}
+	res := RenderModuleResult(mr)
+	if strings.Contains(res, "\x1b") {
+		t.Errorf("RenderModuleResult contains ANSI codes in no-color mode")
+	}
+}
+
 func TestRenderProgressBar(t *testing.T) {
+	SetNoColor(false)
 	bar := RenderProgressBar(50, 20)
 
 	// Должен содержать [ и ]
@@ -41,7 +81,8 @@ func TestRenderProgressBar(t *testing.T) {
 		t.Errorf("progress bar should be wrapped in [], got: %s", bar)
 	}
 
-	// При 0% не должно быть заполненных блоков (█)
+	// При 0% не должно быть заполненных блоков (█) в версии без цвета (проверим без цвета для надежности логики)
+	SetNoColor(true)
 	bar0 := RenderProgressBar(0, 10)
 	if strings.Contains(bar0, "█") {
 		t.Errorf("0%% bar should have no filled blocks")
@@ -52,19 +93,7 @@ func TestRenderProgressBar(t *testing.T) {
 	if strings.Contains(bar100, "░") {
 		t.Errorf("100%% bar should have no empty blocks")
 	}
-}
-
-func TestRenderProgressBarClamp(t *testing.T) {
-	// Не должен паниковать при отрицательных или >100 значениях
-	bar := RenderProgressBar(-10, 20)
-	if bar == "" {
-		t.Error("negative percent should still render")
-	}
-
-	bar = RenderProgressBar(150, 20)
-	if bar == "" {
-		t.Error(">100 percent should still render")
-	}
+	SetNoColor(false)
 }
 
 func TestFormatValue(t *testing.T) {

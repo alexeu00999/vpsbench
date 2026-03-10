@@ -34,8 +34,19 @@ var (
 	colorCyan   = lipgloss.Color("#00CCCC")
 )
 
+var noColor bool
+
+// SetNoColor включает или выключает использование ANSI-цветов.
+func SetNoColor(v bool) {
+	noColor = v
+	slog.Debug("[output] no-color mode set", "value", v)
+}
+
 // ColorForPercent возвращает цвет по шкале 0-100%.
 func ColorForPercent(percent int) lipgloss.Color {
+	if noColor {
+		return lipgloss.Color("")
+	}
 	switch {
 	case percent <= 20:
 		return colorRed
@@ -62,6 +73,10 @@ func RenderProgressBar(percent int, width int) string {
 	filled := width * percent / 100
 	empty := width - filled
 
+	if noColor {
+		return "[" + strings.Repeat("█", filled) + strings.Repeat("░", empty) + "]"
+	}
+
 	color := ColorForPercent(percent)
 	filledStyle := lipgloss.NewStyle().Foreground(color)
 	emptyStyle := lipgloss.NewStyle().Foreground(colorDim)
@@ -77,35 +92,63 @@ func RenderProgressBar(percent int, width int) string {
 
 // RenderHeader рисует шапку отчёта.
 func RenderHeader(data HeaderData, overallRating int) string {
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(colorCyan)
-	dimStyle := lipgloss.NewStyle().Foreground(colorDim)
-	line := strings.Repeat("=", 70)
+	width := 70
+	titleText := "SUPER-BENCH v1.0"
 
 	var sb strings.Builder
-	sb.WriteString(line + "\n")
-	sb.WriteString(fmt.Sprintf(" %s\n", titleStyle.Render("SUPER-BENCH v1.0")))
-	sb.WriteString(line + "\n")
 
-	// Системная информация
-	sb.WriteString(fmt.Sprintf(" OS:       %s  Kernel: %s  Arch: %s\n", data.OSVersion, data.Kernel, data.Arch))
-	sb.WriteString(fmt.Sprintf(" CPU:      %s (%d Cores)\n", data.CPUModel, data.CPUCores))
-	sb.WriteString(fmt.Sprintf(" RAM:      %s\n", data.RAM))
-	sb.WriteString(fmt.Sprintf(" Disk:     %s\n", data.Disks))
+	if !noColor {
+		titleStyle := lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorCyan).
+			Width(width).
+			Align(lipgloss.Center)
 
-	if data.PublicIP != "" {
-		sb.WriteString(fmt.Sprintf(" Location: %s %s\n", data.Location, dimStyle.Render("("+data.PublicIP+")")))
+		headerBox := lipgloss.NewStyle().
+			Border(lipgloss.DoubleBorder(), true, false).
+			BorderForeground(colorCyan).
+			Padding(0, 1)
+
+		sb.WriteString(headerBox.Render(titleStyle.Render(titleText)) + "\n")
 	} else {
-		sb.WriteString(fmt.Sprintf(" Location: %s\n", data.Location))
+		line := strings.Repeat("=", width)
+		sb.WriteString(line + "\n")
+		sb.WriteString(fmt.Sprintf(" %s\n", titleText))
+		sb.WriteString(line + "\n")
 	}
 
-	sb.WriteString(strings.Repeat("-", 70) + "\n")
+	// Системная информация
+	sysInfoStyle := lipgloss.NewStyle().PaddingLeft(1)
+	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("OS:       %-20s Kernel: %-15s Arch: %s", data.OSVersion, data.Kernel, data.Arch)) + "\n")
+	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("CPU:      %s (%d Cores)", data.CPUModel, data.CPUCores)) + "\n")
+	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("RAM:      %s", data.RAM)) + "\n")
+	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("Disk:     %s", data.Disks)) + "\n")
+
+	locationText := data.Location
+	if data.PublicIP != "" {
+		if !noColor {
+			dimStyle := lipgloss.NewStyle().Foreground(colorDim)
+			locationText = fmt.Sprintf("%s %s", data.Location, dimStyle.Render("("+data.PublicIP+")"))
+		} else {
+			locationText = fmt.Sprintf("%s (%s)", data.Location, data.PublicIP)
+		}
+	}
+	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("Location: %s", locationText)) + "\n")
+
+	separator := strings.Repeat("-", width)
+	sb.WriteString(separator + "\n")
 
 	// Общий рейтинг
-	ratingColor := ColorForPercent(overallRating)
-	ratingStyle := lipgloss.NewStyle().Bold(true).Foreground(ratingColor)
-	sb.WriteString(fmt.Sprintf(" SYSTEM RATING: %s\n", ratingStyle.Render(fmt.Sprintf("%d%%", overallRating))))
-	sb.WriteString(" Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5\n")
-	sb.WriteString(strings.Repeat("-", 70))
+	ratingText := fmt.Sprintf("SYSTEM RATING: %d%%", overallRating)
+	if !noColor {
+		ratingColor := ColorForPercent(overallRating)
+		ratingStyle := lipgloss.NewStyle().Bold(true).Foreground(ratingColor).PaddingLeft(1)
+		sb.WriteString(ratingStyle.Render(ratingText) + "\n")
+	} else {
+		sb.WriteString(fmt.Sprintf(" %s\n", ratingText))
+	}
+	sb.WriteString(sysInfoStyle.Render("Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5") + "\n")
+	sb.WriteString(separator)
 
 	return sb.String()
 }
@@ -113,31 +156,44 @@ func RenderHeader(data HeaderData, overallRating int) string {
 // RenderModuleResult рисует результаты одного модуля.
 func RenderModuleResult(mr bench.ModuleResult) string {
 	if mr.Err != nil {
-		errStyle := lipgloss.NewStyle().Foreground(colorRed)
-		return fmt.Sprintf("\n[ %s ] %s\n%s",
+		errText := fmt.Sprintf("  ERROR: %v", mr.Err)
+		if !noColor {
+			errStyle := lipgloss.NewStyle().Foreground(colorRed)
+			errText = errStyle.Render(errText)
+		}
+		return fmt.Sprintf("\n [ %s ] %s\n%s",
 			mr.Module,
 			mr.Info,
-			errStyle.Render(fmt.Sprintf("  ERROR: %v", mr.Err)),
+			errText,
 		)
 	}
 
-	moduleStyle := lipgloss.NewStyle().Bold(true)
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("\n%s %s\n", moduleStyle.Render(fmt.Sprintf("[ %s ]", mr.Module)), mr.Info))
+	moduleText := fmt.Sprintf("[ %s ]", mr.Module)
+	if !noColor {
+		moduleStyle := lipgloss.NewStyle().Bold(true)
+		moduleText = moduleStyle.Render(moduleText)
+	}
+	sb.WriteString(fmt.Sprintf("\n %s %s\n", moduleText, mr.Info))
 
 	for _, r := range mr.Results {
 		bar := RenderProgressBar(r.Percent, 20)
-		pctColor := ColorForPercent(r.Percent)
-		pctStyle := lipgloss.NewStyle().Foreground(pctColor)
+
+		pctText := fmt.Sprintf("%d%%", r.Percent)
+		if !noColor {
+			pctColor := ColorForPercent(r.Percent)
+			pctStyle := lipgloss.NewStyle().Foreground(pctColor)
+			pctText = pctStyle.Render(pctText)
+		}
 
 		label := fmt.Sprintf("%-12s", r.Name)
 		value := fmt.Sprintf(": %s %s", formatValue(r.Value), r.Unit)
 
-		sb.WriteString(fmt.Sprintf("%-28s %s %s\n",
+		sb.WriteString(fmt.Sprintf("  %-28s %s %s\n",
 			label+value,
 			bar,
-			pctStyle.Render(fmt.Sprintf("%d%%", r.Percent)),
+			pctText,
 		))
 	}
 
@@ -146,7 +202,15 @@ func RenderModuleResult(mr bench.ModuleResult) string {
 
 // RenderFooter рисует нижнюю рамку.
 func RenderFooter() string {
-	return strings.Repeat("=", 70)
+	width := 70
+	if !noColor {
+		footerBox := lipgloss.NewStyle().
+			Border(lipgloss.DoubleBorder(), false, false, true, false).
+			BorderForeground(colorCyan).
+			Width(width + 2) // +2 за счет Padding(0, 1) в хедере (визуальное соответствие)
+		return footerBox.Render("")
+	}
+	return strings.Repeat("=", width)
 }
 
 // formatValue форматирует число с разделителями тысяч.

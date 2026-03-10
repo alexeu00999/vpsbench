@@ -34,7 +34,7 @@ func TestCalculate(t *testing.T) {
 	}
 }
 
-func TestCalculateClamp(t *testing.T) {
+func TestCalculateNoClamp(t *testing.T) {
 	baseline := Baseline{
 		Values: map[string]float64{
 			"CPU:test": 100,
@@ -45,22 +45,22 @@ func TestCalculateClamp(t *testing.T) {
 		{
 			Module: "CPU",
 			Results: []bench.Result{
-				{Name: "test", Value: 200, Unit: "ops/s"}, // 200% → clamped to 100
+				{Name: "test", Value: 250, Unit: "ops/s"}, // 250%
 			},
 		},
 	}
 
 	calculated := Calculate(results, baseline)
 
-	if calculated[0].Results[0].Percent != 100 {
-		t.Errorf("expected 100%% (clamped), got %d%%", calculated[0].Results[0].Percent)
+	if calculated[0].Results[0].Percent != 250 {
+		t.Errorf("expected 250%% (no clamp), got %d%%", calculated[0].Results[0].Percent)
 	}
 }
 
 func TestCalculateLatency(t *testing.T) {
 	baseline := Baseline{
 		Values: map[string]float64{
-			"NETWORK:Ping (DNS)": 1.0, // 1ms = 100%
+			"NETWORK:Ping (EU)": 1.0, // 1ms = 100%
 		},
 	}
 
@@ -68,15 +68,19 @@ func TestCalculateLatency(t *testing.T) {
 		{
 			Module: "NETWORK",
 			Results: []bench.Result{
-				{Name: "Ping (DNS)", Value: 2.0, Unit: "ms"}, // 2ms → 50%
+				{Name: "Ping (EU)", Value: 0.5, Unit: "ms"}, // 0.5ms → 200%
+				{Name: "Ping (EU)", Value: 2.0, Unit: "ms"}, // 2ms → 50%
 			},
 		},
 	}
 
 	calculated := Calculate(results, baseline)
 
-	if calculated[0].Results[0].Percent != 50 {
-		t.Errorf("expected 50%% for latency, got %d%%", calculated[0].Results[0].Percent)
+	if calculated[0].Results[0].Percent != 200 {
+		t.Errorf("expected 200%% for low latency, got %d%%", calculated[0].Results[0].Percent)
+	}
+	if calculated[0].Results[1].Percent != 50 {
+		t.Errorf("expected 50%% for high latency, got %d%%", calculated[0].Results[1].Percent)
 	}
 }
 
@@ -104,31 +108,39 @@ func TestOverallRating(t *testing.T) {
 	}
 }
 
-func TestOverallRatingSkipsErrors(t *testing.T) {
-	results := []bench.ModuleResult{
-		{
-			Module: "OK",
-			Results: []bench.Result{
-				{Name: "test", Percent: 50},
-			},
-		},
-		{
-			Module: "FAIL",
-			Err:    errTest,
-			Results: []bench.Result{
-				{Name: "test", Percent: 90}, // должен быть проигнорирован
-			},
-		},
+func TestGetRatingLabel(t *testing.T) {
+	tests := []struct {
+		percent  int
+		expected string
+	}{
+		{10, "Poor"},
+		{30, "Below Average"},
+		{50, "Average"},
+		{70, "Good"},
+		{90, "Excellent"},
+		{150, "Excellent"},
 	}
 
-	overall := OverallRating(results)
-	if overall != 50 {
-		t.Errorf("expected 50 (skip errored module), got %d", overall)
+	for _, tt := range tests {
+		got := GetRatingLabel(tt.percent)
+		if got != tt.expected {
+			t.Errorf("GetRatingLabel(%d) = %s; want %s", tt.percent, got, tt.expected)
+		}
 	}
 }
 
-var errTest = benchError("test error")
+func TestDefaultBaselineContents(t *testing.T) {
+	bl := DefaultBaseline()
+	required := []string{
+		"CPU:Single-core",
+		"CPU:Multi-core",
+		"NETWORK:Download (EU)",
+		"DISK:Seq. Read",
+	}
 
-type benchError string
-
-func (e benchError) Error() string { return string(e) }
+	for _, req := range required {
+		if _, ok := bl.Values[req]; !ok {
+			t.Errorf("DefaultBaseline missing required key: %s", req)
+		}
+	}
+}

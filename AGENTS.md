@@ -25,7 +25,7 @@ vpsbench/
 │   ├── disk/                    # Модуль Disk I/O бенчмарка (seq/random)
 │   ├── network/                 # Модуль сетевого бенчмарка
 │   ├── sysinfo/                 # Детект системы (CPU, RAM, OS, Location)
-│   ├── rating/                  # Расчёт рейтинга (в разработке)
+│   ├── rating/                  # Расчёт рейтинга
 │   ├── ui/                      # TUI компоненты (BubbleTea)
 │   └── output/                  # Форматирование вывода и цвета (Lipgloss)
 ├── docs/                        # Подробная документация (architecture, cli, etc.)

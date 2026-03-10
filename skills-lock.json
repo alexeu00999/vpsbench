@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "charm-stack": {
+      "source": "yurifrl/cly",
+      "sourceType": "github",
+      "computedHash": "85e82b2652f7aabd89e90a7f4a2ff33be74d801193c055858981f708575145e5"
+    },
+    "cli-skills": {
+      "source": "llama-farm/llamafarm",
+      "sourceType": "github",
+      "computedHash": "aa0cfd9384cd3f24c63811016b4e62f1c7e6ac55092f1099f89aa80fe8c7a867"
+    },
+    "go-skills": {
+      "source": "llama-farm/llamafarm",
+      "sourceType": "github",
+      "computedHash": "c6d82460808e7080135df9f49b6e0226501fd587686a0228a809165db3e5ae61"
+    }
+  }
+}

@@ -35,6 +35,41 @@
         "chromeDevtools": false,
         "playwright": false
       }
+    },
+    {
+      "id": "gemini",
+      "skillsDir": ".gemini/skills",
+      "installedSkills": [
+        "aif",
+        "aif-architecture",
+        "aif-best-practices",
+        "aif-build-automation",
+        "aif-ci",
+        "aif-commit",
+        "aif-dockerize",
+        "aif-docs",
+        "aif-evolve",
+        "aif-explore",
+        "aif-fix",
+        "aif-grounded",
+        "aif-implement",
+        "aif-improve",
+        "aif-loop",
+        "aif-plan",
+        "aif-review",
+        "aif-roadmap",
+        "aif-rules",
+        "aif-security-checklist",
+        "aif-skill-generator",
+        "aif-verify"
+      ],
+      "mcp": {
+        "github": false,
+        "filesystem": false,
+        "postgres": false,
+        "chromeDevtools": false,
+        "playwright": false
+      }
     }
   ],
   "extensions": []

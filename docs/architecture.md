@@ -40,13 +40,13 @@ vpsbench/
 | CPU | `internal/cpu` | Замер ops/s single-core и multi-core |
 | RAM | `internal/ram` | Замер скорости чтения/записи памяти |
 | Disk | `internal/disk` | Последовательный и случайный I/O |
-| Network | `internal/network` | Пинг, скорость до EU/US/Asia |
+| Network | `internal/network` | Пинг, скорость до EU/US/Asia (В разработке) |
 | Sysinfo | `internal/sysinfo` | Информация о системе |
-| Rating | `internal/rating` | Процентная оценка относительно базовой конфигурации |
-| UI | `internal/ui` | BubbleTea TUI — выбор и отображение |
-| Output | `internal/output` | Lipgloss — цвета и форматирование |
+| Rating | `internal/rating` | Процентная оценка (В разработке) |
+| UI | `internal/ui` | BubbleTea TUI — выбор и отображение (В разработке) |
+| Output | `internal/output` | Lipgloss — цвета и форматирование (В разработке) |
 
-## Поток данных
+## Поток данных (В разработке)
 
 ```
 main.go
@@ -54,7 +54,7 @@ main.go
   → ui.SelectComponents()     # Пользователь выбирает тесты (3 сек таймер)
   → runner.RunAll(selected)   # Параллельный запуск выбранных бенчмарков
   → rating.Calculate(results) # Расчёт процентов
-  → ui.ShowResults(results)   # Отрисовка цветных прогресс-баров
+  → ui.ShowResults(results)   # Отрисовка цветных прогресс-барок
 ```
 
 ## Правила зависимостей

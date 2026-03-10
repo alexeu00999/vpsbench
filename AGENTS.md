@@ -1,50 +1,63 @@
 # AGENTS.md
 
-> Карта проекта для AI-агентов. Обновляйте этот файл при изменении структуры проекта.
+> Project map for AI agents. Keep this file up-to-date as the project evolves.
 
-## Обзор проекта
-VPS/серверный бенчмарк-инструмент (SUPER-BENCH). Запуск одной командой, интерактивный CLI с цветным ASCII-выводом результатов. Go + Cobra + BubbleTea.
+## Project Overview
+Комплексный инструмент бенчмаркинга VPS и серверов. Запускает тесты производительности и выводит результаты в виде красивой цветной ASCII-графики в терминале.
 
-## Технологический стек
-- **Язык:** Go
-- **CLI фреймворк:** Cobra + BubbleTea/Lipgloss
-- **Дистрибуция:** Единый бинарник, Docker-образ
-- **CI/CD:** TBD
+## Tech Stack
+- **Language:** Go
+- **Framework:** Cobra (CLI) + BubbleTea/Lipgloss (TUI)
+- **Architecture:** Modular Monolith
 
-## Структура проекта
+## Project Structure
 ```
-aif-vpsbench/
-├── .ai-factory/              # Спецификации и архитектура проекта
-│   └── DESCRIPTION.md        # Описание проекта и стека
-├── .claude/                  # Конфигурация AI-агента
-│   └── skills/               # 22 установленных скилла aif-*
-├── docs/                     # Документация
-│   ├── getting-started.md    # Установка и быстрый старт
-│   ├── architecture.md       # Структура проекта и паттерны
-│   └── cli.md                # Команды, флаги, интерактивный режим
-├── todo.md                   # Исходные требования (на русском)
-├── README.md                 # Лендинг-страница проекта
-└── AGENTS.md                 # Этот файл — карта проекта
+vpsbench/
+├── cmd/
+│   └── vpsbench/
+│       └── main.go              # Точка входа, инициализация Cobra
+├── internal/
+│   ├── bench/                   # Общий интерфейс и типы (Benchmark, Result)
+│   │   ├── bench.go             # Интерфейс и основные структуры
+│   │   └── runner.go            # Оркестратор запуска бенчмарков
+│   ├── cpu/                     # Модуль CPU бенчмарка (single/multi core)
+│   ├── ram/                     # Модуль RAM бенчмарка (read/write speed)
+│   ├── disk/                    # Модуль Disk I/O бенчмарка (seq/random)
+│   ├── network/                 # Модуль сетевого бенчмарка (в разработке)
+│   ├── sysinfo/                 # Детект системы (CPU, RAM, OS, Location)
+│   ├── rating/                  # Расчёт рейтинга (в разработке)
+│   ├── ui/                      # TUI компоненты (BubbleTea)
+│   └── output/                  # Форматирование вывода и цвета (Lipgloss)
+├── docs/                        # Подробная документация (architecture, cli, etc.)
+├── .ai-factory/                 # AI-контекст (DESCRIPTION, ARCHITECTURE, ROADMAP)
+├── Dockerfile                   # Контейнеризация для универсального запуска
+├── Makefile                     # Сборка, тесты, линтинг
+├── go.mod                       # Зависимости Go
+└── README.md                    # Описание проекта и инструкции
 ```
 
-## Ключевые файлы
-| Файл | Назначение |
-|------|-----------|
-| todo.md | Исходные требования и примеры UI |
-| .ai-factory/DESCRIPTION.md | Спецификация проекта и стек |
-| .ai-factory/ARCHITECTURE.md | Архитектурные решения |
+## Key Entry Points
+| File | Purpose |
+|------|---------|
+| `cmd/vpsbench/main.go` | Main application entry point |
+| `internal/bench/bench.go` | Central benchmark interface definition |
+| `internal/bench/runner.go` | Orchestrator for concurrent benchmark execution |
+| `.ai-factory/ARCHITECTURE.md` | Detailed architectural guidelines |
 
-## Документация
-| Документ | Путь | Описание |
-|----------|------|----------|
-| README | README.md | Лендинг-страница проекта |
-| Быстрый старт | docs/getting-started.md | Установка, настройка, первый запуск |
-| Архитектура | docs/architecture.md | Структура проекта и паттерны |
-| CLI-интерфейс | docs/cli.md | Команды, флаги, интерактивный режим |
+## Documentation
+| Document | Path | Description |
+|----------|------|-------------|
+| README | README.md | Project landing page |
+| Architecture | docs/architecture.md | High-level system design |
+| CLI Interface | docs/cli.md | Commands, flags, and interaction |
+| Configuration | docs/configuration.md | Environment variables and config |
+| Getting Started | docs/getting-started.md | Installation and usage |
 
-## AI-контекстные файлы
-| Файл | Назначение |
-|------|-----------|
-| AGENTS.md | Этот файл — карта структуры проекта |
-| .ai-factory/DESCRIPTION.md | Спецификация проекта и технологический стек |
-| .ai-factory/ARCHITECTURE.md | Архитектурные решения и гайдлайны |
+## AI Context Files
+| File | Purpose |
+|------|---------|
+| AGENTS.md | This file — project structure map |
+| .ai-factory/DESCRIPTION.md | Project specification and tech stack |
+| .ai-factory/ARCHITECTURE.md | Architecture decisions and guidelines |
+| .ai-factory/ROADMAP.md | Implementation progress tracking |
+| .ai-factory/plans/ | Specific feature implementation plans |

@@ -8,7 +8,7 @@
 
 ```bash
 # Установка и запуск одной командой
-wget -qO- https://super-bench.io/install.sh | bash
+curl -sL https://raw.githubusercontent.com/user/vpsbench/main/install.sh | bash
 
 # Или через Docker
 docker run --rm -it superbench/vpsbench

@@ -49,6 +49,11 @@ CMD ["air"]
 # ============================================================
 FROM alpine:3.21 AS production
 
+LABEL org.opencontainers.image.title="vpsbench" \
+      org.opencontainers.image.description="Comprehensive VPS benchmarking tool" \
+      org.opencontainers.image.source="https://github.com/user/vpsbench" \
+      org.opencontainers.image.vendor="SuperBench"
+
 # Сетевые утилиты нужны для бенчмарка сети
 RUN apk add --no-cache ca-certificates curl
 

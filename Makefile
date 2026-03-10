@@ -12,7 +12,7 @@ MAKEFLAGS += --no-builtin-rules
 PROJECT   ?= vpsbench
 GO        ?= go
 GOFLAGS   ?=
-LDFLAGS   ?= -s -w
+LDFLAGS   ?= -s -w -X 'github.com/user/vpsbench/internal/sysinfo.Version=$(VERSION)' -X 'github.com/user/vpsbench/internal/sysinfo.Commit=$(COMMIT)' -X 'github.com/user/vpsbench/internal/sysinfo.BuildTime=$(BUILD_TIME)'
 
 # --- Git ---
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -116,14 +116,21 @@ docker-push: ## Запушить Docker-образ
 ##@ Релиз
 
 .PHONY: build-all
-build-all: ## Кросс-компиляция для всех платформ
+build-all: clean ## Кросс-компиляция для всех платформ
+	@mkdir -p $(BIN_DIR)
 	@for platform in $(PLATFORMS); do \
 		os=$${platform%/*}; \
 		arch=$${platform#*/}; \
 		output=$(BIN_DIR)/$(PROJECT)-$${os}-$${arch}; \
 		echo "Сборка: $${os}/$${arch} → $${output}"; \
-		GOOS=$${os} GOARCH=$${arch} $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $${output} $(MAIN_PKG); \
+		CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $${output} $(MAIN_PKG); \
 	done
+
+.PHONY: checksum
+checksum: build-all ## Сгенерировать контрольные суммы (sha256)
+	@echo "Генерация контрольных сумм..."
+	cd $(BIN_DIR) && sha256sum $(PROJECT)-* > checksums.txt
+	@cat $(BIN_DIR)/checksums.txt
 
 ##@ CI
 

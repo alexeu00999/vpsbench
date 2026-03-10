@@ -23,7 +23,11 @@ func DefaultBaseline() Baseline {
 			// Калиброван по Apple M4 (~240M single, ~970M multi на 10 cores).
 			"CPU:Single-core":  200000000, // 200M ops/s — один поток Ryzen 9 5900X
 			"CPU:Multi-core":   1500000000, // 1.5B ops/s — 8 потоков Ryzen 9 5900X
-			"RAM:Speed (R/W)":  50000,   // MB/s DDR5
+			// RAM baseline: sequential write/read через []uint64, буфер 128 MB.
+			// Эталон: DDR5-5600 dual-channel ~40 GB/s write, ~45 GB/s read.
+			// Калиброван по Apple M4 LPDDR5 (~26 GB/s write, ~23 GB/s read).
+			"RAM:Write":        40000,   // 40 GB/s — sequential write DDR5-5600
+			"RAM:Read":         45000,   // 45 GB/s — sequential read DDR5-5600
 			"DISK:Seq. Read":   7000,    // MB/s NVMe Gen4
 			"DISK:Seq. Write":  5000,    // MB/s NVMe Gen4
 			"DISK:Rand 4K IOPS": 1000000, // IOPS NVMe Gen4

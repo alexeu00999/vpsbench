@@ -4,9 +4,13 @@ import (
 	"context"
 	"log/slog"
 	"time"
-	"unsafe"
 
 	"github.com/user/vpsbench/internal/bench"
+)
+
+const (
+	// testDuration — длительность каждого теста (write/read).
+	testDuration = 3 * time.Second
 )
 
 // RAMBench реализует bench.Benchmark для тестирования оперативной памяти.
@@ -22,50 +26,45 @@ func (r *RAMBench) Name() string {
 	return "RAM"
 }
 
-// Run выполняет RAM бенчмарк (заглушка с базовым тестом скорости).
+// Run выполняет RAM бенчмарк: sequential write и sequential read.
 func (r *RAMBench) Run(ctx context.Context) bench.ModuleResult {
 	slog.Info("[ram] starting benchmark")
+	start := time.Now()
+
 	result := bench.ModuleResult{
 		Module: "RAM",
-		Info:   "RAM detection pending", // TODO: реальный детект в sysinfo
 	}
 
-	speed := measureSpeed(ctx)
+	// Sequential Write
+	slog.Debug("[ram] running write test", "duration", testDuration)
+	writeStart := time.Now()
+	writeMBs := workloadWrite(ctx, testDuration)
+	writeElapsed := time.Since(writeStart)
 	result.Results = append(result.Results, bench.Result{
-		Name:  "Speed (R/W)",
-		Value: speed,
+		Name:  "Write",
+		Value: writeMBs,
 		Unit:  "MB/s",
 	})
-	slog.Debug("[ram] speed result", "mb_per_sec", speed)
+	slog.Debug("[ram] write result", "mb_per_sec", writeMBs, "elapsed", writeElapsed)
 
-	slog.Info("[ram] benchmark completed")
+	// Sequential Read
+	slog.Debug("[ram] running read test", "duration", testDuration)
+	readStart := time.Now()
+	readMBs := workloadRead(ctx, testDuration)
+	readElapsed := time.Since(readStart)
+	result.Results = append(result.Results, bench.Result{
+		Name:  "Read",
+		Value: readMBs,
+		Unit:  "MB/s",
+	})
+	slog.Debug("[ram] read result", "mb_per_sec", readMBs, "elapsed", readElapsed)
+
+	totalElapsed := time.Since(start)
+	slog.Info("[ram] benchmark completed",
+		"write_mb_s", writeMBs,
+		"read_mb_s", readMBs,
+		"total_elapsed", totalElapsed,
+	)
+
 	return result
-}
-
-// measureSpeed измеряет скорость чтения/записи памяти в MB/s.
-func measureSpeed(ctx context.Context) float64 {
-	const blockSize = 64 * 1024 * 1024 // 64 MB
-	buf := make([]byte, blockSize)
-
-	// Запись
-	start := time.Now()
-	iterations := 0
-	deadline := start.Add(2 * time.Second)
-
-	for time.Now().Before(deadline) {
-		for i := 0; i < blockSize; i += int(unsafe.Sizeof(uint64(0))) {
-			buf[i] = byte(i)
-		}
-		iterations++
-		if ctx.Err() != nil {
-			break
-		}
-	}
-
-	elapsed := time.Since(start).Seconds()
-	totalBytes := float64(iterations) * float64(blockSize)
-	mbPerSec := totalBytes / elapsed / 1024 / 1024
-
-	slog.Debug("[ram] measurement done", "iterations", iterations, "elapsed_sec", elapsed)
-	return mbPerSec
 }

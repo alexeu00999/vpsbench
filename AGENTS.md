@@ -23,7 +23,7 @@ vpsbench/
 │   ├── cpu/                     # Модуль CPU бенчмарка (single/multi core)
 │   ├── ram/                     # Модуль RAM бенчмарка (read/write speed)
 │   ├── disk/                    # Модуль Disk I/O бенчмарка (seq/random)
-│   ├── network/                 # Модуль сетевого бенчмарка (в разработке)
+│   ├── network/                 # Модуль сетевого бенчмарка
 │   ├── sysinfo/                 # Детект системы (CPU, RAM, OS, Location)
 │   ├── rating/                  # Расчёт рейтинга (в разработке)
 │   ├── ui/                      # TUI компоненты (BubbleTea)

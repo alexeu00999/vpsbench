@@ -2,11 +2,8 @@ package disk
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"log/slog"
-	"os"
-	"time"
 
 	"github.com/user/vpsbench/internal/bench"
 )
@@ -24,17 +21,17 @@ func (d *DiskBench) Name() string {
 	return "DISK"
 }
 
-// Run выполняет Disk I/O бенчмарк (заглушка с базовым тестом).
+// Run выполняет Disk I/O бенчмарк.
 func (d *DiskBench) Run(ctx context.Context) bench.ModuleResult {
 	slog.Info("[disk] starting benchmark")
 	result := bench.ModuleResult{
 		Module: "DISK",
-		Info:   "Disk detection pending", // TODO: реальный детект дисков
+		Info:   "Disk detection pending",
 	}
 
 	// Sequential Write
 	slog.Debug("[disk] running sequential write test")
-	writeSpeed, err := testSequentialWrite(ctx)
+	writeSpeed, err := testSequentialWrite(ctx, "")
 	if err != nil {
 		slog.Error("[disk] sequential write failed", "error", err)
 		result.Err = fmt.Errorf("disk write test: %w", err)
@@ -49,7 +46,7 @@ func (d *DiskBench) Run(ctx context.Context) bench.ModuleResult {
 
 	// Sequential Read
 	slog.Debug("[disk] running sequential read test")
-	readSpeed, err := testSequentialRead(ctx)
+	readSpeed, err := testSequentialRead(ctx, "")
 	if err != nil {
 		slog.Error("[disk] sequential read failed", "error", err)
 		result.Err = fmt.Errorf("disk read test: %w", err)
@@ -62,71 +59,21 @@ func (d *DiskBench) Run(ctx context.Context) bench.ModuleResult {
 	})
 	slog.Debug("[disk] seq read result", "mb_per_sec", readSpeed)
 
+	// Random 4K IOPS
+	slog.Debug("[disk] running random 4K IOPS test")
+	iops, err := testRandom4KIOPS(ctx, "")
+	if err != nil {
+		slog.Error("[disk] random 4K IOPS failed", "error", err)
+		result.Err = fmt.Errorf("disk 4K IOPS test: %w", err)
+		return result
+	}
+	result.Results = append(result.Results, bench.Result{
+		Name:  "Rand 4K IOPS",
+		Value: iops,
+		Unit:  "IOPS",
+	})
+	slog.Debug("[disk] rand 4K IOPS result", "iops", iops)
+
 	slog.Info("[disk] benchmark completed", "results_count", len(result.Results))
 	return result
-}
-
-func testSequentialWrite(ctx context.Context) (float64, error) {
-	const blockSize = 1024 * 1024 // 1 MB
-	const totalSize = 64           // 64 MB total
-
-	data := make([]byte, blockSize)
-	rand.Read(data)
-
-	tmpFile, err := os.CreateTemp("", "vpsbench-disk-*")
-	if err != nil {
-		return 0, err
-	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
-
-	start := time.Now()
-	for i := 0; i < totalSize; i++ {
-		if ctx.Err() != nil {
-			break
-		}
-		if _, err := tmpFile.Write(data); err != nil {
-			return 0, err
-		}
-	}
-	tmpFile.Sync()
-	elapsed := time.Since(start).Seconds()
-
-	return float64(totalSize) / elapsed, nil
-}
-
-func testSequentialRead(ctx context.Context) (float64, error) {
-	const blockSize = 1024 * 1024 // 1 MB
-	const totalSize = 64           // 64 MB total
-
-	// Создаём временный файл для чтения
-	data := make([]byte, blockSize)
-	rand.Read(data)
-
-	tmpFile, err := os.CreateTemp("", "vpsbench-disk-*")
-	if err != nil {
-		return 0, err
-	}
-	defer os.Remove(tmpFile.Name())
-
-	for i := 0; i < totalSize; i++ {
-		tmpFile.Write(data)
-	}
-	tmpFile.Sync()
-	tmpFile.Seek(0, 0)
-
-	buf := make([]byte, blockSize)
-	start := time.Now()
-	for i := 0; i < totalSize; i++ {
-		if ctx.Err() != nil {
-			break
-		}
-		if _, err := tmpFile.Read(buf); err != nil {
-			break
-		}
-	}
-	elapsed := time.Since(start).Seconds()
-	tmpFile.Close()
-
-	return float64(totalSize) / elapsed, nil
 }

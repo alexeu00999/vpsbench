@@ -63,7 +63,7 @@
 
 
 ======================================================================
- 🚀 SUPER-BENCH v1.0 | Location: Frankfurt, DE | OS: Ubuntu 22.04
+ 🚀 VPSBENCH v1.0 | Location: Frankfurt, DE | OS: Ubuntu 22.04
 ======================================================================
  SYSTEM RATING: 68% (Solid Mid-Tier Server) 
  Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5
@@ -87,7 +87,7 @@ EU (Hetzner): 850 Mbps ↓ / 700 Mbps ↑
 US (AWS)    : 120 Mbps ↓ /  95 Mbps ↑
 ASIA (DO)   :  45 Mbps ↓ /  30 Mbps ↑
 ----------------------------------------------------------------------
-📋 Share your result: https://super-bench.io/result/xyz123
+📋 Share your result: https://vpsbench.io/result/xyz123
 ======================================================================
 
 

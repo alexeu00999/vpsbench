@@ -37,7 +37,7 @@ func main() {
 
 	rootCmd := &cobra.Command{
 		Use:   "vpsbench",
-		Short: "SUPER-BENCH — комплексный бенчмарк VPS и серверов",
+		Short: "VPSBENCH — комплексный бенчмарк VPS и серверов",
 		Long:  "Тестирование производительности CPU, RAM, Disk I/O и сети с красивым цветным выводом.",
 		RunE:  runBenchmark,
 	}
@@ -57,7 +57,7 @@ func main() {
 }
 
 func runBenchmark(cmd *cobra.Command, args []string) error {
-	slog.Info("[main] starting SUPER-BENCH")
+	slog.Info("[main] starting VPSBENCH")
 
 	// Определяем систему
 	ctx := context.Background()

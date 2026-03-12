@@ -24,7 +24,7 @@ curl -sL https://raw.githubusercontent.com/user/vpsbench/main/install.sh | bash
 ### Вариант 2: Docker
 
 ```bash
-docker run --rm -it superbench/vpsbench
+docker run --rm -it vpsbench/vpsbench
 ```
 
 Docker-образ содержит всё необходимое. Подходит для серверов без прямого доступа.

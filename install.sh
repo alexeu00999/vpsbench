@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# --- SUPER-BENCH (vpsbench) Installer ---
+# --- VPSBENCH (vpsbench) Installer ---
 # Установка в одну команду: wget -qO- https://bench.sh | bash
 
 set -euo pipefail

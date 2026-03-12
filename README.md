@@ -1,4 +1,4 @@
-# SUPER-BENCH
+# VPSBENCH
 
 > Бенчмарк VPS и серверов одной командой. Красивый вывод с цветными прогресс-барами.
 
@@ -11,7 +11,7 @@
 curl -sL https://raw.githubusercontent.com/user/vpsbench/main/install.sh | bash
 
 # Или через Docker
-docker run --rm -it superbench/vpsbench
+docker run --rm -it vpsbench/vpsbench
 ```
 
 ## Использование CLI
@@ -46,7 +46,7 @@ vpsbench --no-color
 
 ```
 ======================================================================
- SUPER-BENCH v1.0 | Location: Frankfurt, DE | OS: Ubuntu 22.04
+ VPSBENCH v1.0 | Location: Frankfurt, DE | OS: Ubuntu 22.04
 ======================================================================
  SYSTEM RATING: 68% (Solid Mid-Tier Server)
  Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5

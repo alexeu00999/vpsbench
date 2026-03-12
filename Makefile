@@ -1,4 +1,4 @@
-# --- Makefile для SUPER-BENCH (vpsbench) ---
+# --- Makefile для VPSBENCH (vpsbench) ---
 # Использование: make [target]
 
 SHELL := bash
@@ -25,7 +25,7 @@ MAIN_PKG   ?= ./cmd/vpsbench
 BINARY     := $(BIN_DIR)/$(PROJECT)
 
 # --- Docker ---
-DOCKER_IMAGE ?= superbench/vpsbench
+DOCKER_IMAGE ?= vpsbench/vpsbench
 DOCKER_TAG   ?= $(VERSION)
 
 # --- Инструменты ---

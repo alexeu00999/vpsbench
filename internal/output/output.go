@@ -97,7 +97,7 @@ func RenderProgressBar(percent int, width int) string {
 // RenderHeader рисует шапку отчёта.
 func RenderHeader(data HeaderData, overallRating int) string {
 	width := 70
-	titleText := "SUPER-BENCH v1.0"
+	titleText := "VPSBENCH v1.0"
 
 	var sb strings.Builder
 

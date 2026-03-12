@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPSBENCH - Бенчмарк серверов и VPS в одну команду</title>
+    <meta name="description" content="Комплексный инструмент для тестирования производительности серверов: CPU, RAM, диски, сеть. Красивый цветной вывод в терминале.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        terminal: {
+                            bg: '#0f172a',
+                            text: '#cbd5e1',
+                            green: '#4ade80',
+                            yellow: '#facc15',
+                            red: '#f87171',
+                            cyan: '#22d3ee',
+                            purple: '#c084fc',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc; /* Slate 50 */
+        }
+        
+        .terminal-window {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-header {
+            background: linear-gradient(to right, #1e293b, #0f172a);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-green { color: theme('colors.terminal.green'); }
+        .progress-yellow { color: theme('colors.terminal.yellow'); }
+        .progress-white { color: #f8fafc; }
+        .progress-orange { color: #fb923c; }
+        
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .glow-effect {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(45, 212, 191, 0.15) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col relative overflow-x-hidden">
+    
+    <!-- Background Effects -->
+    <div class="fixed inset-0 bg-grid-pattern z-[-2]"></div>
+    <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-brand-500/10 blur-[120px] rounded-full z-[-1]"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 blur-[120px] rounded-full z-[-1]"></div>
+
+    <!-- Navbar -->
+    <nav class="container mx-auto px-6 py-6 flex justify-between items-center relative z-10">
+        <div class="flex items-center gap-2">
+            <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+            </svg>
+            <span class="text-xl font-bold tracking-tight text-white">VPSBENCH</span>
+        </div>
+        <div class="flex items-center gap-6">
+            <a href="#features" class="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block">Возможности</a>
+            <a href="#usage" class="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block">Использование</a>
+            <a href="https://github.com/user/vpsbench" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-sm font-medium text-white transition-all shadow-lg hover:shadow-brand-500/20">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="flex-grow container mx-auto px-6 pt-16 pb-24 relative z-10 flex flex-col items-center text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold mb-8 tracking-wide">
+            <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+            v1.0 Доступна для установки
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+            Бенчмарк серверов <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-cyan-500">в одну команду</span>
+        </h1>
+        
+        <p class="text-lg md:text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed">
+            Комплексный инструмент для тестирования производительности CPU, RAM, дисков и сети. 
+            Никаких зависимостей, красивый цветной вывод прямо в терминале.
+        </p>
+
+        <!-- Install Command Copy Box -->
+        <div class="w-full max-w-2xl relative mb-16 group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-brand-500 to-cyan-500 rounded-xl blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
+            <div class="relative bg-slate-900 border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
+                <div class="px-4 text-slate-500 font-mono text-sm hidden sm:block">$</div>
+                <code class="flex-grow text-left text-brand-200 font-mono text-sm md:text-base overflow-x-auto whitespace-nowrap hide-scrollbar p-2" id="install-cmd">
+                    curl -sL https://raw.githubusercontent.com/user/vpsbench/main/install.sh | bash
+                </code>
+                <button onclick="copyCommand()" id="copy-btn" class="ml-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center gap-2 font-medium text-sm transition-all border border-slate-600 focus:ring-2 focus:ring-brand-500">
+                    <svg id="copy-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <span id="copy-text">Копировать</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Terminal Showcase -->
+        <div class="w-full max-w-4xl terminal-window bg-terminal-bg rounded-xl overflow-hidden shadow-2xl text-left text-xs md:text-sm lg:text-base mb-20 transform perspective-1000 rotate-x-2">
+            <!-- Mac Window Controls -->
+            <div class="terminal-header px-4 py-3 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500 shadow-sm"></div>
+                <div class="ml-4 text-slate-400 text-xs font-mono">user@server: ~</div>
+            </div>
+            
+            <!-- Terminal Content -->
+            <div class="p-6 font-mono leading-relaxed overflow-x-auto text-terminal-text">
+                <div class="text-slate-500 mb-2">$ vpsbench</div>
+                <div class="text-slate-400">======================================================================</div>
+                <div class="font-bold"><span class="text-terminal-cyan"> VPSBENCH v1.0</span> | Location: Frankfurt, DE | OS: Ubuntu 22.04</div>
+                <div class="text-slate-400">======================================================================</div>
+                <div> <span class="text-terminal-yellow">SYSTEM RATING: 68% (Solid Mid-Tier Server)</span></div>
+                <div class="text-slate-400"> Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5</div>
+                <div class="text-slate-400 mb-4">----------------------------------------------------------------------</div>
+                
+                <div class="mb-4">
+                    <div class="text-terminal-cyan font-bold">[ CPU ] <span class="text-terminal-text font-normal">Intel(R) Xeon(R) E5-2690 v3 (4 Cores)</span></div>
+                    <div>Single-core : 1 240 ops/s  <span class="progress-orange">[█████████<span class="text-slate-600">░░░░░░░░░░░</span>] 45%</span></div>
+                    <div>Multi-core  : 4 800 ops/s  <span class="progress-white">[████████████<span class="text-slate-600">░░░░░░░░</span>] 60%</span></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-terminal-cyan font-bold">[ RAM ] <span class="text-terminal-text font-normal">4 GB DDR4 (Virtual)</span></div>
+                    <div>Speed (R/W) : 18 500 MB/s  <span class="progress-yellow">[███████████████<span class="text-slate-600">░░░░░</span>] 75%</span></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-terminal-cyan font-bold">[ DISK ] <span class="text-terminal-text font-normal">50 GB (SSD / Ext4)</span></div>
+                    <div>Seq. Read   : 850 MB/s     <span class="progress-white">[███████████<span class="text-slate-600">░░░░░░░░░</span>] 55%</span></div>
+                    <div>Seq. Write  : 620 MB/s     <span class="progress-orange">[█████████<span class="text-slate-600">░░░░░░░░░░░</span>] 45%</span></div>
+                    <div>Rand 4K IOPS: 45 000 IOPS  <span class="progress-green">[█████████████████<span class="text-slate-600">░░░</span>] 85%</span></div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-terminal-cyan font-bold">[ NETWORK ] <span class="text-terminal-text font-normal">1 Gbps Port Detected</span></div>
+                    <div>Ping (DNS)  : 1.2 ms       <span class="progress-green">[████████████████████] 95%</span></div>
+                    <div class="text-slate-300">EU (Hetzner): 850 Mbps ↓ / 700 Mbps ↑</div>
+                    <div class="text-slate-300">US (AWS)    : 120 Mbps ↓ /  95 Mbps ↑</div>
+                    <div class="text-slate-300">ASIA (DO)   :  45 Mbps ↓ /  30 Mbps ↑</div>
+                </div>
+
+                <div class="text-slate-400">----------------------------------------------------------------------</div>
+                <div class="text-slate-400">======================================================================</div>
+                <div class="mt-2 text-terminal-green animate-pulse">_</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-slate-900/50 border-y border-slate-800 relative z-10">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Всё, что нужно для оценки сервера</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">Инструмент собирает наиболее важные метрики, позволяя за пару минут понять реальную производительность купленного VPS.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <!-- Feature 1 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-brand-500/50 transition-colors">
+                    <div class="w-12 h-12 bg-brand-500/10 rounded-lg flex items-center justify-center mb-6 text-brand-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">CPU Бенчмарк</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Вычисляет количество операций в секунду. Проверяет производительность как на одном ядре (Single-core), так и во многопоточном режиме (Multi-core).</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-terminal-purple/50 transition-colors">
+                    <div class="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-6 text-terminal-purple">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Диски и I/O</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Измеряет последовательное чтение и запись (МБ/с), а также случайные операции блоками 4K (IOPS). Отдельно тестирует каждый подключенный диск.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-terminal-cyan/50 transition-colors">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-lg flex items-center justify-center mb-6 text-terminal-cyan">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Глобальная сеть</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Проверяет скорость скачивания и отдачи до серверов на разных континентах (Европа, США, Азия), а также базовый пинг до DNS.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-terminal-yellow/50 transition-colors">
+                    <div class="w-12 h-12 bg-yellow-500/10 rounded-lg flex items-center justify-center mb-6 text-terminal-yellow">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Интерактивный TUI</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Выбирайте компоненты для теста с помощью чекбоксов в красивом консольном меню. Встроен таймер автостарта на 3 секунды.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-terminal-green/50 transition-colors">
+                    <div class="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center mb-6 text-terminal-green">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Система рейтинга</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Сравнивает ваш сервер с "эталонным" мощным дедиком и выводит понятную оценку в процентах (0-100%) с цветовой индикацией.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl hover:border-slate-400 transition-colors">
+                    <div class="w-12 h-12 bg-slate-700 rounded-lg flex items-center justify-center mb-6 text-slate-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">JSON Вывод</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">Запускайте с флагом <code>--json</code> для интеграции результатов в ваши пайплайны, системы мониторинга или CI/CD без лишнего визуального шума.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Usage/Docker Section -->
+    <section id="usage" class="py-24 relative z-10">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <h2 class="text-3xl font-bold mb-10 text-center">Гибкие варианты запуска</h2>
+            
+            <div class="space-y-6">
+                <!-- Method 1 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col md:flex-row">
+                    <div class="p-6 md:w-1/3 bg-slate-800/50 border-r border-slate-800 flex flex-col justify-center">
+                        <h4 class="font-bold text-white mb-2">Запуск через Docker</h4>
+                        <p class="text-sm text-slate-400">Идеально, если не хотите ничего устанавливать в систему.</p>
+                    </div>
+                    <div class="p-6 md:w-2/3 flex items-center bg-black font-mono text-sm text-brand-200">
+                        docker run --rm -it vpsbench/vpsbench
+                    </div>
+                </div>
+
+                <!-- Method 2 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col md:flex-row">
+                    <div class="p-6 md:w-1/3 bg-slate-800/50 border-r border-slate-800 flex flex-col justify-center">
+                        <h4 class="font-bold text-white mb-2">Автоматический режим</h4>
+                        <p class="text-sm text-slate-400">Пропускает интерактивное меню и запускает все тесты.</p>
+                    </div>
+                    <div class="p-6 md:w-2/3 flex items-center bg-black font-mono text-sm text-brand-200">
+                        vpsbench --auto
+                    </div>
+                </div>
+
+                <!-- Method 3 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col md:flex-row">
+                    <div class="p-6 md:w-1/3 bg-slate-800/50 border-r border-slate-800 flex flex-col justify-center">
+                        <h4 class="font-bold text-white mb-2">Выборочные тесты</h4>
+                        <p class="text-sm text-slate-400">Запускает только CPU и RAM тесты без проверки сети и диска.</p>
+                    </div>
+                    <div class="p-6 md:w-2/3 flex items-center bg-black font-mono text-sm text-brand-200">
+                        vpsbench --cpu --ram
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 mt-auto relative z-10">
+        <div class="container mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-bold tracking-tight text-white opacity-80">VPSBENCH</span>
+            </div>
+            <div class="text-sm text-slate-500">
+                Создано для быстрого тестирования серверов. Лицензия MIT.
+            </div>
+            <div class="flex gap-4">
+                <a href="https://github.com/user/vpsbench" class="text-slate-400 hover:text-white transition-colors">
+                    <span class="sr-only">GitHub</span>
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        function copyCommand() {
+            const codeText = document.getElementById('install-cmd').innerText.trim();
+            navigator.clipboard.writeText(codeText).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const text = document.getElementById('copy-text');
+                const icon = document.getElementById('copy-icon');
+                
+                // Change to success state
+                btn.classList.remove('bg-slate-800', 'hover:bg-slate-700', 'border-slate-600');
+                btn.classList.add('bg-brand-500', 'hover:bg-brand-600', 'border-brand-500', 'text-slate-900');
+                text.innerText = 'Скопировано!';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    btn.classList.add('bg-slate-800', 'hover:bg-slate-700', 'border-slate-600');
+                    btn.classList.remove('bg-brand-500', 'hover:bg-brand-600', 'border-brand-500', 'text-slate-900');
+                    text.innerText = 'Копировать';
+                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

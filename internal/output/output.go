@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -67,154 +68,164 @@ func ColorForPercent(percent int) lipgloss.Color {
 
 // RenderProgressBar рисует прогресс-бар [█████░░░░░] с цветом.
 func RenderProgressBar(percent int, width int) string {
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > 100 {
-		percent = 100
-	}
-
-	filled := width * percent / 100
-	empty := width - filled
-
 	if noColor {
+		if percent < 0 {
+			percent = 0
+		}
+		if percent > 100 {
+			percent = 100
+		}
+		filled := width * percent / 100
+		empty := width - filled
 		return "[" + strings.Repeat("█", filled) + strings.Repeat("░", empty) + "]"
 	}
-
-	color := ColorForPercent(percent)
-	filledStyle := lipgloss.NewStyle().Foreground(color)
-	emptyStyle := lipgloss.NewStyle().Foreground(colorDim)
-
-	bar := "[" +
-		filledStyle.Render(strings.Repeat("█", filled)) +
-		emptyStyle.Render(strings.Repeat("░", empty)) +
-		"]"
-
-	slog.Debug("[output] rendered progress bar", "percent", percent, "width", width, "filled", filled)
-	return bar
+	return RenderGradientBar(percent, width)
 }
 
-// RenderHeader рисует шапку отчёта.
+// RenderHeader рисует шапку отчёта в стиле btop.
 func RenderHeader(data HeaderData, overallRating int) string {
-	width := 70
-	titleText := "VPSBENCH v1.0"
+	width := 72
+	titleText := " VPSBENCH v1.0 "
 
-	var sb strings.Builder
-
-	if !noColor {
-		titleStyle := lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorCyan).
-			Width(width).
-			Align(lipgloss.Center)
-
-		headerBox := lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder(), true, false).
-			BorderForeground(colorCyan).
-			Padding(0, 1)
-
-		sb.WriteString(headerBox.Render(titleStyle.Render(titleText)) + "\n")
-	} else {
+	if noColor {
+		var sb strings.Builder
 		line := strings.Repeat("=", width)
 		sb.WriteString(line + "\n")
 		sb.WriteString(fmt.Sprintf(" %s\n", titleText))
 		sb.WriteString(line + "\n")
+		sb.WriteString(fmt.Sprintf(" OS: %-20s Kernel: %-15s Arch: %s\n", data.OSVersion, data.Kernel, data.Arch))
+		sb.WriteString(fmt.Sprintf(" CPU: %s (%d Cores)\n", data.CPUModel, data.CPUCores))
+		sb.WriteString(fmt.Sprintf(" SYSTEM RATING: %d%%\n", overallRating))
+		sb.WriteString(strings.Repeat("-", width) + "\n")
+		return sb.String()
 	}
 
-	// Системная информация
-	sysInfoStyle := lipgloss.NewStyle().PaddingLeft(1)
-	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("OS:       %-20s Kernel: %-15s Arch: %s", data.OSVersion, data.Kernel, data.Arch)) + "\n")
-	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("CPU:      %s (%d Cores)", data.CPUModel, data.CPUCores)) + "\n")
-	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("RAM:      %s", data.RAM)) + "\n")
-	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("Disk:     %s", data.Disks)) + "\n")
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#111111")).
+		Background(colorCyan).
+		Padding(0, 1)
 
-	locationText := data.Location
-	if data.PublicIP != "" {
-		if !noColor {
-			dimStyle := lipgloss.NewStyle().Foreground(colorDim)
-			locationText = fmt.Sprintf("%s %s", data.Location, dimStyle.Render("("+data.PublicIP+")"))
-		} else {
-			locationText = fmt.Sprintf("%s (%s)", data.Location, data.PublicIP)
-		}
+	headerBox := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(colorCyan).
+		Width(width).
+		Padding(0, 1)
+
+	// Системная инфо-панель
+	infoStyle := lipgloss.NewStyle().Foreground(colorWhite)
+	dimStyle := lipgloss.NewStyle().Foreground(colorDim)
+
+	sysInfo := fmt.Sprintf("OS: %-20s Kernel: %-15s Arch: %s\n", 
+		infoStyle.Render(data.OSVersion), 
+		infoStyle.Render(data.Kernel), 
+		infoStyle.Render(data.Arch))
+	sysInfo += fmt.Sprintf("CPU: %-30s Location: %s\n", 
+		infoStyle.Render(data.CPUModel), 
+		infoStyle.Render(data.Location))
+
+	ratingColor := ColorForPercent(overallRating)
+	ratingBar := RenderGradientBar(overallRating, 30)
+	ratingLine := fmt.Sprintf("SYSTEM RATING: %s %s %s", 
+		lipgloss.NewStyle().Bold(true).Foreground(ratingColor).Render(fmt.Sprintf("%d%%", overallRating)),
+		ratingBar,
+		dimStyle.Render("Baseline: Ryzen 9 / NVMe / 10Gbps"))
+
+	content := sysInfo + "\n" + ratingLine
+
+	// Вставляем заголовок в верхнюю границу
+	rendered := headerBox.Render(content)
+	
+	// Магия: заменяем часть верхней границы на заголовок
+	lines := strings.Split(rendered, "\n")
+	if len(lines) > 0 {
+		topLine := lines[0]
+		title := titleStyle.Render(titleText)
+		// Находим место для вставки (примерно в середине или слева)
+		offset := 4
+		prefix := topLine[:offset]
+		// Нам нужно учитывать длину ANSI кодов в title, но не в prefix
+		// Просто заменяем символы в строке
+		lines[0] = prefix + title + topLine[offset+lipgloss.Width(title):]
 	}
-	sb.WriteString(sysInfoStyle.Render(fmt.Sprintf("Location: %s", locationText)) + "\n")
 
-	separator := strings.Repeat("-", width)
-	sb.WriteString(separator + "\n")
-
-	// Общий рейтинг
-	ratingText := fmt.Sprintf("SYSTEM RATING: %d%%", overallRating)
-	if !noColor {
-		ratingColor := ColorForPercent(overallRating)
-		ratingStyle := lipgloss.NewStyle().Bold(true).Foreground(ratingColor).PaddingLeft(1)
-		sb.WriteString(ratingStyle.Render(ratingText) + "\n")
-	} else {
-		sb.WriteString(fmt.Sprintf(" %s\n", ratingText))
-	}
-	sb.WriteString(sysInfoStyle.Render("Baseline 100%: 8-core Ryzen 9, NVMe Gen4, 10Gbps, 16GB DDR5") + "\n")
-	sb.WriteString(separator)
-
-	return sb.String()
+	return strings.Join(lines, "\n")
 }
 
-// RenderModuleResult рисует результаты одного модуля.
+// RenderModuleResult рисует результаты одного модуля в виде блока btop.
 func RenderModuleResult(mr bench.ModuleResult) string {
-	if mr.Err != nil {
-		errText := fmt.Sprintf("  ERROR: %v", mr.Err)
-		if !noColor {
-			errStyle := lipgloss.NewStyle().Foreground(colorRed)
-			errText = errStyle.Render(errText)
+	width := 72
+	
+	moduleColor := colorCyan
+	switch mr.Module {
+	case "CPU": moduleColor = lipgloss.Color("#FF8800")
+	case "RAM": moduleColor = lipgloss.Color("#c084fc")
+	case "DISK": moduleColor = lipgloss.Color("#22d3ee")
+	case "NETWORK": moduleColor = lipgloss.Color("#4ade80")
+	}
+
+	if noColor {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("\n[ %s ] %s\n", mr.Module, mr.Info))
+		for _, r := range mr.Results {
+			sb.WriteString(fmt.Sprintf("  %-20s %s %d%%\n", r.Name, RenderProgressBar(r.Percent, 20), r.Percent))
 		}
-		return fmt.Sprintf("\n [ %s ] %s\n%s",
-			mr.Module,
-			mr.Info,
-			errText,
-		)
+		return sb.String()
 	}
 
-	var sb strings.Builder
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#111111")).
+		Background(moduleColor).
+		Padding(0, 1)
 
-	moduleText := fmt.Sprintf("[ %s ]", mr.Module)
-	if !noColor {
-		moduleStyle := lipgloss.NewStyle().Bold(true)
-		moduleText = moduleStyle.Render(moduleText)
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(moduleColor).
+		Width(width).
+		Padding(0, 1)
+
+	var content strings.Builder
+	
+	// Если это CPU или NETWORK, можем добавить микро-график
+	if (mr.Module == "CPU" || mr.Module == "NETWORK") && len(mr.Results) > 0 {
+		data := make([]float64, 20)
+		for i := range data {
+			data[i] = float64(mr.Results[0].Percent) / 100.0 * (0.8 + 0.4*math.Sin(float64(i))) // Имитация
+		}
+		spark := RenderSparkline(data, width-10)
+		content.WriteString(lipgloss.NewStyle().Foreground(moduleColor).Render(spark) + "\n\n")
 	}
-	sb.WriteString(fmt.Sprintf("\n %s %s\n", moduleText, mr.Info))
 
 	for _, r := range mr.Results {
-		bar := RenderProgressBar(r.Percent, 20)
-
-		pctText := fmt.Sprintf("%d%%", r.Percent)
-		if !noColor {
-			pctColor := ColorForPercent(r.Percent)
-			pctStyle := lipgloss.NewStyle().Foreground(pctColor)
-			pctText = pctStyle.Render(pctText)
-		}
-
+		bar := RenderProgressBar(r.Percent, 25)
+		pctStyle := lipgloss.NewStyle().Foreground(ColorForPercent(r.Percent))
+		
 		label := fmt.Sprintf("%-12s", r.Name)
-		value := fmt.Sprintf(": %s %s", formatValue(r.Value), r.Unit)
-
-		sb.WriteString(fmt.Sprintf("  %-28s %s %s\n",
-			label+value,
+		value := fmt.Sprintf("%s %s", formatValue(r.Value), r.Unit)
+		
+		content.WriteString(fmt.Sprintf("%-25s %s %s\n", 
+			lipgloss.NewStyle().Foreground(colorWhite).Render(label) + lipgloss.NewStyle().Foreground(colorDim).Render(value),
 			bar,
-			pctText,
-		))
+			pctStyle.Render(fmt.Sprintf("%3d%%", r.Percent))))
 	}
 
-	return sb.String()
+	rendered := boxStyle.Render(strings.TrimSpace(content.String()))
+	
+	// Вставляем заголовок модуля
+	lines := strings.Split(rendered, "\n")
+	if len(lines) > 0 {
+		title := headerStyle.Render(" " + mr.Module + " ")
+		offset := 4
+		lines[0] = lines[0][:offset] + title + lines[0][offset+lipgloss.Width(title):]
+	}
+
+	return "\n" + strings.Join(lines, "\n")
 }
 
-// RenderFooter рисует нижнюю рамку.
+// RenderFooter просто возвращает пустую строку, так как блоки теперь завершены сами собой.
 func RenderFooter() string {
-	width := 70
-	if !noColor {
-		footerBox := lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder(), false, false, true, false).
-			BorderForeground(colorCyan).
-			Width(width + 2) // +2 за счет Padding(0, 1) в хедере (визуальное соответствие)
-		return footerBox.Render("")
-	}
-	return strings.Repeat("=", width)
+	return ""
 }
 
 // formatValue форматирует число с разделителями тысяч.

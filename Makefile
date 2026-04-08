@@ -45,6 +45,26 @@ PLATFORMS ?= linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 build: ## Собрать бинарник
 	$(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(BINARY) $(MAIN_PKG)
 
+.PHONY: build-linux-amd64
+build-linux-amd64: ## Собрать бинарник для Linux x86_64
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$(PROJECT)-linux-amd64 $(MAIN_PKG)
+
+.PHONY: build-linux-arm64
+build-linux-arm64: ## Собрать бинарник для Linux ARM64
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$(PROJECT)-linux-arm64 $(MAIN_PKG)
+
+.PHONY: build-darwin-amd64
+build-darwin-amd64: ## Собрать бинарник для macOS Intel
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$(PROJECT)-darwin-amd64 $(MAIN_PKG)
+
+.PHONY: build-darwin-arm64
+build-darwin-arm64: ## Собрать бинарник для macOS Apple Silicon
+	@mkdir -p $(BIN_DIR)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(BIN_DIR)/$(PROJECT)-darwin-arm64 $(MAIN_PKG)
+
 .PHONY: run
 run: build ## Собрать и запустить
 	$(BINARY)
@@ -123,7 +143,7 @@ build-all: clean ## Кросс-компиляция для всех платфо
 		arch=$${platform#*/}; \
 		output=$(BIN_DIR)/$(PROJECT)-$${os}-$${arch}; \
 		echo "Сборка: $${os}/$${arch} → $${output}"; \
-		CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $${output} $(MAIN_PKG); \
+		CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $${output} $(MAIN_PKG) || exit $$?; \
 	done
 
 .PHONY: checksum
@@ -148,5 +168,5 @@ clean: ## Удалить артефакты сборки
 .PHONY: help
 help: ## Показать эту справку
 	@awk 'BEGIN {FS = ":.*##"; printf "Использование:\n  make \033[36m<target>\033[0m\n"} \
-		/^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2} \
+		/^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2} \
 		/^##@/ {printf "\n\033[1m%s\033[0m\n", substr($$0, 5)}' $(MAKEFILE_LIST)
